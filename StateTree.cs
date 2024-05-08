@@ -25,8 +25,6 @@ namespace VMS.TPS
         {
             // TODO : Add here the code that is called when the script is launched from Eclipse.
             StateTree stateTree = new StateTree(context);
-            //StateTree stateTree = new StateTree(context.PlanSetup);
-            //StateTree stateTree = new StateTree(context.StructureCodes);
             stateTree.ShowDialog();
         }
     }
