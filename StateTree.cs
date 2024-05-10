@@ -148,7 +148,7 @@ namespace VMS.TPS
                     var value = field.GetValue(obj);
                     if (value.GetType() != obj.GetType())
                     {
-                        if(field.IsInitOnly || field.IsLiteral)
+                        if (field.IsInitOnly || field.IsLiteral)
                         {
                             CreateFildOrPropertyItem(value, field, item, true, false);
                         }
@@ -353,7 +353,7 @@ namespace VMS.TPS
                             }
                             else
                             {
-                                name += string.Format(",{0}",p.ParameterType.FullName);
+                                name += string.Format(",{0}", p.ParameterType.FullName);
                             }
                         }
                         name += ")";
@@ -468,10 +468,10 @@ namespace VMS.TPS
             {
                 name = ((PropertyInfo)info).Name;
             }
-            else if(info is FieldInfo)
+            else if (info is FieldInfo)
             {
                 name = ((FieldInfo)info).Name;
-            }            
+            }
             var type = value.GetType();
             if (type.IsArray)
             {
@@ -499,7 +499,7 @@ namespace VMS.TPS
                     }
                 }
             }
-            else if (valueType.Contains(type))
+            else if (valueType.Contains(type) || type.IsEnum)
             {
                 CreateChildItems(value, parentItem, canGet, canSet);
             }
