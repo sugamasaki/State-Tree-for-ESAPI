@@ -43,18 +43,39 @@ namespace VMS.TPS
         }
         public StateTree(ScriptContext context)
         {
-            string rtmPath = @"C:\Program Files (x86)\Varian\RTM\";
-            if (!Directory.Exists(rtmPath))
+            string versionInfo = "11";
+            string filePath = "";
+            if (context.GetType().GetProperties().Any(p => p.Name == "VersionInfo"))
             {
-                rtmPath = @"C:\Program Files\Varian\RTM\";
+                versionInfo = context.VersionInfo;
             }
-            string[] versionPaths = Directory.GetDirectories(rtmPath);
-            foreach (var versionPath in versionPaths)
+            if (versionInfo == "11")
             {
-                if (context.VersionInfo.Contains(versionPath.Split('\\').Last()))
+                filePath = @"C:\Program Files (x86)\Varian\Vision\11.0\Bin64\VMS.TPS.Common.Model.API.xml"
+            }
+            else
+            {
+                string rtmPath = @"C:\Program Files (x86)\Varian\RTM\";
+                if (!Directory.Exists(rtmPath))
                 {
-                    xmlAPI = XElement.Load(versionPath + @"\esapi\API\VMS.TPS.Common.Model.API.xml");
+                    rtmPath = @"C:\Program Files\Varian\RTM\";
                 }
+                string[] versionPaths = Directory.GetDirectories(rtmPath);
+                foreach (var versionPath in versionPaths)
+                {
+                    if (context.VersionInfo.Contains(versionPath.Split('\\').Last()))
+                    {
+                        filePath = versionPath + @"\esapi\API\VMS.TPS.Common.Model.API.xml";
+                    }
+                }
+            }
+            if (File.Exists(filePath))
+            {
+                xmlAPI = XElement.Load(filePath);
+            }
+            else
+            {
+                MessageBox.Show(filePath + "is not found.");
             }
             TreeView treeView = CreateTreeView(context);
             InitializeComponent(treeView);
@@ -256,6 +277,11 @@ namespace VMS.TPS
                     name = ((FieldInfo)item.Items[0]).FieldType.FullName;
 
                 }
+                if (xmlAPI == null)
+                {
+                    e.Handled = true;
+                    return;
+                }
                 IEnumerable<XElement> members = xmlAPI.Element("members").Elements("member");
                 if (members.Any(m => m.Attribute("name").Value.EndsWith(name)))
                 {
@@ -346,6 +372,11 @@ namespace VMS.TPS
                 {
                     name = item.Tag.GetType().FullName;
                 }
+                if (xmlAPI == null)
+                {
+                    e.Handled = true;
+                    return;
+                }
                 IEnumerable<XElement> members = xmlAPI.Element("members").Elements("member");
                 if (members.Any(m => m.Attribute("name").Value.EndsWith(name)))
                 {
@@ -387,7 +418,6 @@ namespace VMS.TPS
                         }
                     }
                 }
-
             }
             e.Handled = true;
         }
