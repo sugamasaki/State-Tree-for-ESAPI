@@ -47,7 +47,7 @@ namespace VMS.TPS
             string filePath = "";
             if (context.GetType().GetProperties().Any(p => p.Name == "VersionInfo"))
             {
-                versionInfo = GetPropertyValue(context, "VersionInfo");
+                versionInfo = (string)GetPropertyValue(context, "VersionInfo");
             }
             if (versionInfo == "11")
             {
