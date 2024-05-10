@@ -1,16 +1,16 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
-using System.Collections;
-using System.Xml.Linq;
 
 [assembly: AssemblyVersion("1.0.0.1")]
 
@@ -33,15 +33,24 @@ namespace VMS.TPS
 
     public partial class StateTree : Window
     {
-        private List<Type> valueType = new List<Type>() { typeof(bool), typeof(sbyte), typeof(byte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(char), typeof(float), typeof(double), typeof(decimal), typeof(string) };
-        XElement xmlAPI;
+        private readonly List<Type> valueType = new List<Type>() { typeof(bool), typeof(sbyte), typeof(byte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(char), typeof(float), typeof(double), typeof(decimal), typeof(string) };
+        private XElement xml;
         private TextBox textBox;
+
+        public StateTree(ScriptContext context)
+        {
+            xml = LoadXml(context);
+            TreeView treeView = CreateTreeView(context);
+            InitializeComponent(treeView);
+        }
+
         Object GetPropertyValue(Object obj, string name)
         {
             var property = obj.GetType().GetProperty(name);
             return property.GetValue(obj);
         }
-        public StateTree(ScriptContext context)
+
+        private XElement LoadXml(ScriptContext context)
         {
             string versionInfo = "11";
             string filePath = "";
@@ -71,15 +80,15 @@ namespace VMS.TPS
             }
             if (File.Exists(filePath))
             {
-                xmlAPI = XElement.Load(filePath);
+                return XElement.Load(filePath);
             }
             else
             {
                 MessageBox.Show(filePath + "is not found.");
+                return null;
             }
-            TreeView treeView = CreateTreeView(context);
-            InitializeComponent(treeView);
         }
+
         private void InitializeComponent(TreeView treeView)
         {
             this.Title = "StateTree for ESAPI";
@@ -104,6 +113,7 @@ namespace VMS.TPS
             grid.Children.Add(textBox);
             this.Content = grid;
         }
+
         private TreeView CreateTreeView(Object obj)
         {
             TreeView treeView = new TreeView();
@@ -259,6 +269,7 @@ namespace VMS.TPS
         private void OnItemSelected(object sender, RoutedEventArgs e)
         {
             TreeViewItem item = sender as TreeViewItem;
+            TreeViewItem parentItem = item.Parent as TreeViewItem;
             textBox.Text = "";
             if (item.Tag == null)
             {
@@ -267,159 +278,85 @@ namespace VMS.TPS
             }
             if (item.Items.Count == 1 && (item.Items[0] is PropertyInfo || item.Items[0] is FieldInfo))
             {
-                string name = "";
-                if (item.Items[0] is PropertyInfo)
-                {
-                    name = ((PropertyInfo)item.Items[0]).PropertyType.FullName;
-                }
-                else if (item.Items[0] is FieldInfo)
-                {
-                    name = ((FieldInfo)item.Items[0]).FieldType.FullName;
-
-                }
-                if (xmlAPI == null)
-                {
-                    e.Handled = true;
-                    return;
-                }
-                IEnumerable<XElement> members = xmlAPI.Element("members").Elements("member");
-                if (members.Any(m => m.Attribute("name").Value.EndsWith(name)))
-                {
-                    XElement member = members.Single(m => m.Attribute("name").Value.EndsWith(name));
-                    foreach (var attribute in member.Attributes())
-                    {
-                        textBox.Text += attribute.Value;
-                    }
-                    foreach (var element in member.Elements())
-                    {
-                        textBox.Text += element.Value;
-                    }
-                }
-                else
-                {
-                    TreeViewItem parentItem = item.Parent as TreeViewItem;
-                    if (parentItem.Tag is PropertyInfo)
-                    {
-                        name = ((PropertyInfo)parentItem.Tag).PropertyType.FullName + "." + item.Header;
-                    }
-                    else if (parentItem.Tag is FieldInfo)
-                    {
-                        name = ((FieldInfo)parentItem.Tag).FieldType.FullName + "." + item.Header;
-                    }
-                    else
-                    {
-                        name = parentItem.Tag.GetType().FullName + "." + item.Header;
-                    }
-                    if (members.Any(m => m.Attribute("name").Value.EndsWith(name)))
-                    {
-                        XElement member = members.Single(m => m.Attribute("name").Value.EndsWith(name));
-                        foreach (var attribute in member.Attributes())
-                        {
-                            textBox.Text += attribute.Value;
-                        }
-                        foreach (var element in member.Elements())
-                        {
-                            textBox.Text += element.Value;
-                        }
-                    }
-                }
+                string name = GetFullName(item.Items[0], parentItem);
+                textBox.Text = GetXmlValue(name, item);
             }
             else
             {
-                string name = "";
-                if (item.Tag is PropertyInfo)
-                {
-                    name = ((PropertyInfo)item.Tag).PropertyType.FullName;
-                }
-                else if (item.Tag is FieldInfo)
-                {
-                    name = ((FieldInfo)item.Tag).FieldType.FullName;
-
-                }
-                else if (item.Tag is MethodInfo)
-                {
-                    MethodInfo method = item.Tag as MethodInfo;
-                    if (method.GetParameters().Length == 0)
-                    {
-                        name += string.Format(".{0}()", method.Name);
-                    }
-                    else
-                    {
-                        foreach (var p in method.GetParameters())
-                        {
-                            if (name == "")
-                            {
-                                name += string.Format(".{0}({1}", method.Name, p.ParameterType.FullName);
-                            }
-                            else
-                            {
-                                name += string.Format(",{0}", p.ParameterType.FullName);
-                            }
-                        }
-                        name += ")";
-                    }
-                    TreeViewItem parentItem = item.Parent as TreeViewItem;
-                    if (parentItem.Tag is PropertyInfo)
-                    {
-                        name = ((PropertyInfo)parentItem.Tag).PropertyType.FullName + name;
-                    }
-                    else if (parentItem.Tag is FieldInfo)
-                    {
-                        name = ((FieldInfo)parentItem.Tag).FieldType.FullName + name;
-                    }
-                }
-                else
-                {
-                    name = item.Tag.GetType().FullName;
-                }
-                if (xmlAPI == null)
-                {
-                    e.Handled = true;
-                    return;
-                }
-                IEnumerable<XElement> members = xmlAPI.Element("members").Elements("member");
-                if (members.Any(m => m.Attribute("name").Value.EndsWith(name)))
-                {
-                    XElement member = members.Single(m => m.Attribute("name").Value.EndsWith(name));
-                    foreach (var attribute in member.Attributes())
-                    {
-                        textBox.Text += attribute.Value;
-                    }
-                    foreach (var element in member.Elements())
-                    {
-                        textBox.Text += element.Value;
-                    }
-                }
-                else
-                {
-                    TreeViewItem parentItem = item.Parent as TreeViewItem;
-                    if (parentItem.Tag is PropertyInfo)
-                    {
-                        name = ((PropertyInfo)parentItem.Tag).PropertyType.FullName + "." + item.Header;
-                    }
-                    else if (parentItem.Tag is FieldInfo)
-                    {
-                        name = ((FieldInfo)parentItem.Tag).FieldType.FullName + "." + item.Header;
-                    }
-                    else
-                    {
-                        name = parentItem.Tag.GetType().FullName + "." + item.Header;
-                    }
-                    if (members.Any(m => m.Attribute("name").Value.EndsWith(name)))
-                    {
-                        XElement member = members.Single(m => m.Attribute("name").Value.EndsWith(name));
-                        foreach (var attribute in member.Attributes())
-                        {
-                            textBox.Text += attribute.Value;
-                        }
-                        foreach (var element in member.Elements())
-                        {
-                            textBox.Text += element.Value;
-                        }
-                    }
-                }
+                string name = GetFullName(item.Tag, parentItem);
+                textBox.Text = GetXmlValue(name, item);
             }
             e.Handled = true;
+        }
+        private string GetFullName(Object obj, TreeViewItem parentItem = null)
+        {
+            string name = "";
+            if (obj is PropertyInfo)
+            {
+                name = ((PropertyInfo)obj).PropertyType.FullName;
+            }
+            else if (obj is FieldInfo)
+            {
+                name = ((FieldInfo)obj).FieldType.FullName;
+
+            }
+            else if (obj is MethodInfo)
+            {
+                MethodInfo method = obj as MethodInfo;
+                if (method.GetParameters().Length == 0)
+                {
+                    name += string.Format(".{0}()", method.Name);
+                }
+                else
+                {
+                    foreach (var p in method.GetParameters())
+                    {
+                        if (name == "")
+                        {
+                            name += string.Format(".{0}({1}", method.Name, p.ParameterType.FullName);
+                        }
+                        else
+                        {
+                            name += string.Format(",{0}", p.ParameterType.FullName);
+                        }
+                    }
+                    name += ")";
+                }
+                name = GetFullName(parentItem.Tag) + name;
+            }
+            else
+            {
+                name = obj.GetType().FullName;
+            }
+            return name;
+        }
+        private string GetXmlValue(string name, TreeViewItem item = null)
+        {
+            string text = "";
+            if (xml == null)
+            {
+                return text;
+            }            
+            IEnumerable<XElement> members = xml.Element("members").Elements("member");
+            if (members.Any(m => m.Attribute("name").Value.EndsWith(name)))
+            {
+                XElement member = members.Single(m => m.Attribute("name").Value.EndsWith(name));
+                foreach (var attribute in member.Attributes())
+                {
+                    text += attribute.Value;
+                }
+                foreach (var element in member.Elements())
+                {
+                    text += element.Value;
+                }
+            }
+            else if (item != null)
+            {
+                TreeViewItem parentItem = item.Parent as TreeViewItem;
+                name = GetFullName(parentItem.Tag) + "." + item.Header;
+                text = GetXmlValue(name);
+            }
+            return text;
         }
         private void CreateItems(Object obj, TreeViewItem parentItem)
         {
