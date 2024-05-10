@@ -51,7 +51,7 @@ namespace VMS.TPS
             }
             if (versionInfo == "11")
             {
-                filePath = @"C:\Program Files (x86)\Varian\Vision\11.0\Bin64\VMS.TPS.Common.Model.API.xml"
+                filePath = @"C:\Program Files (x86)\Varian\Vision\11.0\Bin64\VMS.TPS.Common.Model.API.xml";
             }
             else
             {
