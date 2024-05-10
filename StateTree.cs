@@ -47,11 +47,11 @@ namespace VMS.TPS
             string filePath = "";
             if (context.GetType().GetProperties().Any(p => p.Name == "VersionInfo"))
             {
-                versionInfo = context.VersionInfo;
+                versionInfo = GetPropertyValue(context, "VersionInfo");
             }
             if (versionInfo == "11")
             {
-                filePath = @"C:\Program Files (x86)\Varian\Vision\11.0\Bin64\VMS.TPS.Common.Model.API.xml";
+                filePath = @"C:\Program Files (x86)\Varian\Vision\11.0\Bin64\VMS.TPS.Common.Model.API.xml"
             }
             else
             {
@@ -63,7 +63,7 @@ namespace VMS.TPS
                 string[] versionPaths = Directory.GetDirectories(rtmPath);
                 foreach (var versionPath in versionPaths)
                 {
-                    if (context.VersionInfo.Contains(versionPath.Split('\\').Last()))
+                    if (versionInfo.Contains(versionPath.Split('\\').Last()))
                     {
                         filePath = versionPath + @"\esapi\API\VMS.TPS.Common.Model.API.xml";
                     }
