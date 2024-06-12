@@ -33,6 +33,7 @@ namespace VMS.TPS
 
     public partial class StateTree : Window
     {
+        private const int maxItemsToShow = 100;
         private readonly List<Type> valueType = new List<Type>() { typeof(bool), typeof(sbyte), typeof(byte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(char), typeof(float), typeof(double), typeof(decimal), typeof(string) };
         private XElement xml;
         private TextBox textBox;
@@ -213,6 +214,12 @@ namespace VMS.TPS
                             for (int i = 0; i < count; i++)
                             {
                                 var item1 = new TreeViewItem();
+                                if (i == maxItemsToShow)
+                                {
+                                    item1.Header = string.Format("Displaying {0} out of {1} items...", maxItemsToShow, count);
+                                    item.Items.Add(item1);
+                                    break;
+                                }
                                 item1.Header = property.Name + i.ToString();
                                 var value = property.GetValue(obj, new object[] { i });
                                 item1.Tag = value;
@@ -228,6 +235,12 @@ namespace VMS.TPS
                             foreach (var key in keys)
                             {
                                 var item1 = new TreeViewItem();
+                                if (count == maxItemsToShow)
+                                {
+                                    item1.Header = string.Format("Displaying {0} out of {1} items...", maxItemsToShow, keys.Count());
+                                    item.Items.Add(item1);
+                                    break;
+                                }
                                 item1.Header = property.Name + count.ToString();
                                 var value = property.GetValue(obj, new object[] { key });
                                 item1.Tag = value;
